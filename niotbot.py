@@ -1,7 +1,17 @@
 import datetime
 import logging
-from discord import Client, Message, ChannelType, Role, utils
-from db import Base, Attachment, Submission, Session, engine
+from discord import (
+    Client,
+    Message,
+    ChannelType,
+    Role,
+    utils,
+    Member,
+    Reaction,
+    User,
+    RawReactionActionEvent,
+)
+from db import Base, Attachment, Review, Submission, Session, engine
 from sqlalchemy import orm
 
 
@@ -19,6 +29,8 @@ class NIoTBot(Client):
 
     # this needs to be manually updated if you want to add more channels
     ALLOWED_CHANNELS = ["social-media"]
+    APPROVAL_EMOJI = "\N{WHITE HEAVY CHECK MARK}"
+    REJECTION_EMOJI = "\N{CROSS MARK}"
 
     async def on_ready(self):
         self.log.info('Logged on as "%s', self.user)
@@ -72,7 +84,20 @@ class NIoTBot(Client):
                 )
             )
 
-        await thread.send(f"Thanks for your submission {message.author.mention}.")
+        number_of_attachments = len(submission.attachments)
+
+        await thread.send(
+            f"""
+Thanks for your submission, {message.author.mention}. 
+
+You have submitted {number_of_attachments} attachment{'' if number_of_attachments == 1 else 's'}.
+
+{'It' if number_of_attachments == 1 else 'They'} will be posted with the caption:
+```
+{submission.description}
+```
+                          """.strip()
+        )
 
         role: Role = utils.get(message.guild.roles, name=self.APPROVERS_ROLE)
         assert role is not None
@@ -85,8 +110,47 @@ class NIoTBot(Client):
         self.session.add(submission)
         self.session.commit()
 
-        await approval_message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-        await approval_message.add_reaction("\N{CROSS MARK}")
+        await approval_message.add_reaction(self.APPROVAL_EMOJI)  # approve
+        await approval_message.add_reaction(self.REJECTION_EMOJI)  # deny
+
+    async def on_raw_reaction_add(self, reaction: RawReactionActionEvent):
+        self.log.info(f"got reaction {reaction}")
+        if reaction.user_id == self.user.id:
+            return  # ignore the bot
+
+        submission = (
+            self.session.query(Submission)
+            .filter_by(discord_approval_message_id=reaction.message_id)
+            .one_or_none()
+        )
+
+        if not submission:
+            self.log.info(
+                f"Could not find submission reacting to {reaction.message_id}"
+            )
+            return
+
+        thread = self.get_channel(submission.discord_thread_id)
+        reviewer = self.get_user(reaction.user_id)
+        assert reviewer is not None
+        emoji = reaction.emoji.name
+        if emoji == self.APPROVAL_EMOJI:
+            await thread.send(f"Approved by {reviewer.mention}.")
+            approval = True
+        elif emoji == self.REJECTION_EMOJI:
+            await thread.send(f"Rejected by {reviewer.mention}.")
+            approval = False
+        else:
+            return  # reaction didn't matter
+
+        submission.reviews.append(
+            Review(
+                approval=approval,
+                discord_user_id=reviewer.id,
+                discord_user_display_name=reviewer.display_name,
+            )
+        )
+        self.session.commit()
 
     async def on_disconnect(self):
         """Graceful shutdown"""
