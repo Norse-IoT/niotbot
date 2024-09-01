@@ -41,6 +41,8 @@ class NIoTBot(Client):
             message=message
         )
         await thread.send(f"Thanks for your submission {message.author.mention}.")
+        # we've seen this message
+        await message.add_reaction("\N{EYES}")
         if not message.attachments:
             await thread.send("No attachments were found. You must have attachments to post to social media.")
             return
