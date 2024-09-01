@@ -1,8 +1,7 @@
 import datetime
 import logging
-from discord import *
-
-from db import Base, Submission, Session, engine
+from discord import Client, Message, ChannelType, Role, utils
+from db import Base, Attachment, Submission, Session, engine
 from sqlalchemy import orm
 
 
@@ -61,22 +60,33 @@ class NIoTBot(Client):
         submission = Submission(
             discord_message_id=message.id,
             discord_message_content=message.content,
-            discord_thread=thread.id,
+            discord_thread_id=thread.id,
             discord_author_id=message.author.id,
             discord_author_display_name=message.author.display_name,
         )
-        self.session.add(submission)
-        self.session.commit()
+        for attachment in message.attachments:
+            submission.attachments.append(
+                Attachment(
+                    discord_attachment_id=attachment.id,
+                    content_type=attachment.content_type,
+                )
+            )
 
-        await thread.send(
-            f"Thanks for your submission {message.author.mention}. (ID: #{submission.id})."
-        )
+        await thread.send(f"Thanks for your submission {message.author.mention}.")
 
         role: Role = utils.get(message.guild.roles, name=self.APPROVERS_ROLE)
         assert role is not None
-        await thread.send(
-            f"A {role.mention} will need to approve your submission before it is posted by replying to this message."
+        approval_message = await thread.send(
+            f"A {role.mention} will need to approve your submission before it is posted by reacting to this message."
         )
+
+        submission.discord_approval_message_id = approval_message.id
+
+        self.session.add(submission)
+        self.session.commit()
+
+        await approval_message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+        await approval_message.add_reaction("\N{CROSS MARK}")
 
     async def on_disconnect(self):
         """Graceful shutdown"""
