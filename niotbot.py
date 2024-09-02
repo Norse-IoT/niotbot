@@ -1,5 +1,7 @@
-import datetime
+import os
+import uuid
 import logging
+import datetime
 from discord import (
     Client,
     Message,
@@ -9,11 +11,13 @@ from discord import (
     RawReactionActionEvent,
     RawMessageDeleteEvent,
 )
+from discord.ext import tasks
 from db import Base, Attachment, Review, Submission, Session, engine
 from publisher import InstagramPublisher
 from sqlalchemy import orm
-import os
-import uuid
+from sqlalchemy.orm import aliased
+from sqlalchemy import and_, func
+from zoneinfo import ZoneInfo
 
 
 def get_random_filepath(filename: str) -> str:
@@ -178,15 +182,6 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         )
         self.session.commit()
 
-        ### Post to Instagram
-        if approval:
-            publisher = InstagramPublisher()
-            await publisher.login()
-            post_url = await publisher.upload(submission)
-            submission.posted = True
-            self.session.commit()
-            await thread.send(f"Success! Posted at <{post_url}>")
-
     async def on_raw_reaction_remove(self, reaction: RawReactionActionEvent):
         """Undo approved or denied submissions by un-reacting to their associated bot message"""
 
@@ -230,3 +225,50 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         """Graceful shutdown"""
         self.log.info("shutting down...")
         self.session.close()
+
+    @tasks.loop(
+        time=[datetime.time(hour=12, minute=0, tzinfo=ZoneInfo("America/New_York"))]
+    )
+    async def post_approved_submissions(self):
+        # Aliases for the Review table to handle multiple conditions
+        ReviewTrue = aliased(Review)
+        ReviewFalse = aliased(Review)
+
+        # Find all submissions with at least one positive review, and zero rejections
+        query = (
+            self.session.query(Submission)
+            .join(
+                ReviewTrue,
+                and_(
+                    Submission.id == ReviewTrue.parent_id, ReviewTrue.approval == True
+                ),
+            )
+            .outerjoin(
+                ReviewFalse,
+                and_(
+                    Submission.id == ReviewFalse.parent_id,
+                    ReviewFalse.approval == False,
+                ),
+            )
+            .filter(Submission.posted == False)
+            .group_by(Submission.id)
+            .having(func.count(ReviewTrue.id) > 0)
+            .having(func.count(ReviewFalse.id) == 0)
+        )
+
+        # log in to Instagram
+        publisher = InstagramPublisher()
+        await publisher.login()
+
+        # try to post all
+        for submission in query.all():
+            thread = self.get_channel(submission.discord_thread_id)
+            await thread.send("Attempting to publish...")
+            try:
+                post_url = await publisher.upload(submission)
+                submission.posted = True
+                self.session.commit()
+                await thread.send(f"Success! Posted at <{post_url}>")
+            except Exception:
+                await thread.send("Error! See logs for details.")
+                self.log.error("Failed to post to Instagram"))
