@@ -271,4 +271,4 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
                 await thread.send(f"Success! Posted at <{post_url}>")
             except Exception:
                 await thread.send("Error! See logs for details.")
-                self.log.error("Failed to post to Instagram"))
+                self.log.error("Failed to post to Instagram", exc_info=True)
