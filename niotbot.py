@@ -139,7 +139,7 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
             approval = True
         elif emoji == self.REJECTION_EMOJI:
             await thread.send(
-                f"Rejected by {reviewer.mention}. Any post with at least one rejection will not be posted."
+                f"Rejected by {reviewer.mention}. Any submission with at least one rejection will not be posted."
             )
             approval = False
         else:
