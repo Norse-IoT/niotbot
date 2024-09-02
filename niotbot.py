@@ -10,16 +10,17 @@ from discord import (
     RawMessageDeleteEvent,
 )
 from db import Base, Attachment, Review, Submission, Session, engine
+from publisher import InstagramPublisher
 from sqlalchemy import orm
 import os
 import uuid
 
 
-def get_random_filepath() -> str:
+def get_random_filepath(filename: str) -> str:
     base = os.path.dirname(os.path.realpath(__file__))
-    attachements = os.path.join(base, "attachments")
-    os.makedirs(attachements, exist_ok=True)
-    return os.path.join(attachements, str(uuid.uuid4()))
+    randomdir = os.path.join(base, "attachments", str(uuid.uuid4()))
+    os.makedirs(randomdir, exist_ok=True)
+    return os.path.join(randomdir, filename)
 
 
 class NIoTBot(Client):
@@ -84,7 +85,7 @@ class NIoTBot(Client):
             discord_author_display_name=message.author.display_name,
         )
         for attachment in message.attachments:
-            filepath = get_random_filepath()
+            filepath = get_random_filepath(attachment.filename)
             await attachment.save(filepath)
             submission.attachments.append(
                 Attachment(
@@ -176,6 +177,15 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
             )
         )
         self.session.commit()
+
+        ### Post to Instagram
+        if approval:
+            publisher = InstagramPublisher()
+            await publisher.login()
+            post_url = await publisher.upload(submission)
+            submission.posted = True
+            self.session.commit()
+            await thread.send(f"Success! Posted at <{post_url}>")
 
     async def on_raw_reaction_remove(self, reaction: RawReactionActionEvent):
         """Undo approved or denied submissions by un-reacting to their associated bot message"""
