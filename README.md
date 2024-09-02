@@ -10,9 +10,9 @@ Norse IoT Discord Bot - Posts to social media
 
 ## join link
 
-Use this link to add it to a server:
+Use this link format to add it to a server:
 
-<https://discordapp.com/oauth2/authorize?client_id={APPLICATION_ID}&scope=bot&permissions=1689384584739904>
+`https://discordapp.com/oauth2/authorize?client_id={APPLICATION_ID}&scope=bot&permissions=1689384584739904`
 
 ## Development
 
