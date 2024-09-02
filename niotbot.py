@@ -18,6 +18,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import aliased
 from sqlalchemy import and_, func
 from zoneinfo import ZoneInfo
+from discord.ext import commands
 
 
 def get_random_filepath(filename: str) -> str:
@@ -27,7 +28,7 @@ def get_random_filepath(filename: str) -> str:
     return os.path.join(randomdir, filename)
 
 
-class NIoTBot(Client):
+class NIoTBot(commands.Bot):
     """Norse IoT Bot; currently handles social media"""
 
     APPROVERS_ROLE = "Social Media Approver"
@@ -61,8 +62,18 @@ class NIoTBot(Client):
 
         return False
 
+    async def _process_commands(self, message):
+        ctx = await self.get_context(message)
+        if ctx.command is not None:
+            await self.invoke(ctx)
+            return True
+        return False
+
     async def on_message(self, message: Message):
         if await self.should_reject(message):
+            return
+
+        if await self._process_commands(message):
             return
 
         current_time = datetime.datetime.now().isoformat()

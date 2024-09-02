@@ -24,7 +24,12 @@ def main():
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
-    client = NIoTBot(intents=intents)
+    client = NIoTBot(intents=intents, command_prefix="/")
+
+    @client.command()
+    async def ping(ctx):
+        await ctx.send("pong")
+
     client.run(TOKEN)
 
 
