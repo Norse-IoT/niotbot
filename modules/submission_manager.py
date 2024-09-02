@@ -181,7 +181,7 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         if reaction.user_id == self.bot.user.id:
             return  # ignore the bot
 
-        submission = (
+        submission: Submission | None = (
             self.session.query(Submission)
             .filter_by(discord_approval_message_id=reaction.message_id)
             .one_or_none()
@@ -206,11 +206,22 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         else:
             return  # reaction didn't matter
 
-        self.session.query(Review).filter_by(
-            approval=approval,
-            discord_user_id=reviewer.id,
-            discord_user_display_name=reviewer.display_name,
-        ).delete()
+        review_to_remove = next(
+            (
+                review
+                for review in submission.reviews
+                if review.approval == approval and review.discord_user_id == reviewer.id
+            ),
+            None,
+        )
+
+        if review_to_remove:
+            submission.reviews.remove(review_to_remove)
+            self.session.delete(review_to_remove)
+        else:
+            self.log.error(
+                f"Review not found for user {reviewer.display_name} with approval status {approval}."
+            )
 
         self.session.commit()
 
