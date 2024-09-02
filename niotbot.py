@@ -6,10 +6,8 @@ from discord import (
     ChannelType,
     Role,
     utils,
-    Member,
-    Reaction,
-    User,
     RawReactionActionEvent,
+    RawMessageDeleteEvent,
 )
 from db import Base, Attachment, Review, Submission, Session, engine
 from sqlalchemy import orm
@@ -93,7 +91,6 @@ Thanks for your submission, {message.author.mention}.
 
 You have submitted {number_of_attachments} attachment{'' if number_of_attachments == 1 else 's'}.
 
-{f'Instagram does not support multi-image posts, so this will create {number_of_attachments} posts.\n' if number_of_attachments != 1 else ''}
 {'It' if number_of_attachments == 1 else 'They'} will be posted with the caption:
 ```
 {submission.description}
@@ -114,6 +111,18 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
 
         await approval_message.add_reaction(self.APPROVAL_EMOJI)  # approve
         await approval_message.add_reaction(self.REJECTION_EMOJI)  # deny
+
+    async def on_raw_message_delete(self, message: RawMessageDeleteEvent):
+        submission = (
+            self.session.query(Submission)
+            .filter_by(discord_message_id=message.message_id)
+            .one_or_none()
+        )
+        if submission:
+            thread = self.get_channel(submission.discord_thread_id)
+            await thread.send("Original post deleted! This will not be posted.")
+            self.session.delete(submission)
+            self.log.info(f"deleted message {message.message_id}")
 
     async def on_raw_reaction_add(self, reaction: RawReactionActionEvent):
         """Approve or deny submissions by reacting to their associated bot message"""
