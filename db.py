@@ -1,5 +1,6 @@
-from datetime import datetime
+"""Manges application state with SQLAlchemy"""
 
+from datetime import datetime
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import Mapped
 from sqlalchemy import Column
@@ -7,8 +8,6 @@ from sqlalchemy import create_engine
 from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
 from sqlalchemy import BigInteger
-from sqlalchemy import String
-from sqlalchemy import Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import orm
@@ -65,6 +64,8 @@ class Attachment(Base):
 
 
 class Review(Base):
+    """An approval or rejection of a submission"""
+
     __tablename__ = "reviews"
 
     id: Mapped[int] = mapped_column(primary_key=True)

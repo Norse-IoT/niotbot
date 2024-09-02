@@ -1,12 +1,12 @@
 """Publishes files to Instagram"""
 
+import os
 import logging
 from dotenv import load_dotenv
-import os
 from instagrapi import Client
 from PIL import Image
 from db import Submission, Attachment
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 
 load_dotenv()
 USERNAME = os.getenv("INSTAGRAM_USERNAME")
@@ -36,7 +36,6 @@ class InstagramPublisher:
             results.append(filepath)
         return results
 
-    # TODO: upload in background job that doesn't block discord connection
     async def upload(self, submission: Submission) -> str:
         if submission.posted:  # don't double-post
             return

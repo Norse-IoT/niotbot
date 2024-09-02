@@ -1,17 +1,5 @@
-import os
-import uuid
 import logging
-import datetime
-from discord import (
-    Message,
-    ChannelType,
-    Role,
-    utils,
-    RawReactionActionEvent,
-    RawMessageDeleteEvent,
-)
-from db import Base, Attachment, Review, Submission, Session, engine
-from sqlalchemy import orm
+from db import Base, engine
 from discord.ext import commands
 
 

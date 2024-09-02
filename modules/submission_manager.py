@@ -11,7 +11,7 @@ from discord import (
     RawReactionActionEvent,
     RawMessageDeleteEvent,
 )
-from db import Base, Attachment, Review, Submission, Session, engine
+from db import Base, Attachment, Review, Submission, Session
 from discord.ext import commands
 
 
