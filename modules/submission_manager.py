@@ -130,6 +130,7 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
             thread = self.bot.get_channel(submission.discord_thread_id)
             await thread.send("Original submission deleted! This will not be posted.")
             self.session.delete(submission)
+            self.session.commit()
             self.log.info(f"deleted message {message.message_id}")
 
     @commands.Cog.listener()
