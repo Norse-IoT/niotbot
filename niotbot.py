@@ -114,7 +114,7 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         await approval_message.add_reaction(self.REJECTION_EMOJI)  # deny
 
     async def on_raw_reaction_add(self, reaction: RawReactionActionEvent):
-        self.log.info(f"got reaction {reaction}")
+        """Approve or deny submissions by reacting to their associated bot message"""
         if reaction.user_id == self.user.id:
             return  # ignore the bot
 
@@ -138,7 +138,9 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
             await thread.send(f"Approved by {reviewer.mention}.")
             approval = True
         elif emoji == self.REJECTION_EMOJI:
-            await thread.send(f"Rejected by {reviewer.mention}.")
+            await thread.send(
+                f"Rejected by {reviewer.mention}. Any post with at least one rejection will not be posted."
+            )
             approval = False
         else:
             return  # reaction didn't matter
@@ -150,6 +152,45 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
                 discord_user_display_name=reviewer.display_name,
             )
         )
+        self.session.commit()
+
+    async def on_raw_reaction_remove(self, reaction: RawReactionActionEvent):
+        """Undo approved or denied submissions by un-reacting to their associated bot message"""
+
+        if reaction.user_id == self.user.id:
+            return  # ignore the bot
+
+        submission = (
+            self.session.query(Submission)
+            .filter_by(discord_approval_message_id=reaction.message_id)
+            .one_or_none()
+        )
+
+        if not submission:
+            self.log.info(
+                f"Could not find submission un-reacting to {reaction.message_id}"
+            )
+            return
+
+        thread = self.get_channel(submission.discord_thread_id)
+        reviewer = self.get_user(reaction.user_id)
+        assert reviewer is not None
+        emoji = reaction.emoji.name
+        if emoji == self.APPROVAL_EMOJI:
+            await thread.send(f"Approval removed by {reviewer.mention}.")
+            approval = True
+        elif emoji == self.REJECTION_EMOJI:
+            await thread.send(f"Rejection removed by {reviewer.mention}.")
+            approval = False
+        else:
+            return  # reaction didn't matter
+
+        self.session.query(Review).filter_by(
+            approval=approval,
+            discord_user_id=reviewer.id,
+            discord_user_display_name=reviewer.display_name,
+        ).delete()
+
         self.session.commit()
 
     async def on_disconnect(self):
