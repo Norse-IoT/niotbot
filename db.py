@@ -38,8 +38,12 @@ class Submission(Base):
     discord_author_display_name: Mapped[str]
     discord_approval_message_id: Mapped[int] = Column(BigInteger, nullable=False)
 
-    attachments: Mapped[list["Attachment"]] = relationship()
-    reviews: Mapped[list["Review"]] = relationship()
+    attachments: Mapped[list["Attachment"]] = relationship(
+        cascade="all,delete", backref="parent"
+    )
+    reviews: Mapped[list["Review"]] = relationship(
+        cascade="all,delete", backref="parent"
+    )
 
     @hybrid_property
     def description(self) -> str:
