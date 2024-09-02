@@ -3,3 +3,4 @@ venv/
 __pycache__/
 niotbot.log
 niotbot.db
+attachments/

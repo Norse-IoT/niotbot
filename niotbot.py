@@ -11,6 +11,15 @@ from discord import (
 )
 from db import Base, Attachment, Review, Submission, Session, engine
 from sqlalchemy import orm
+import os
+import uuid
+
+
+def get_random_filepath() -> str:
+    base = os.path.dirname(os.path.realpath(__file__))
+    attachements = os.path.join(base, "attachments")
+    os.makedirs(attachements, exist_ok=True)
+    return os.path.join(attachements, str(uuid.uuid4()))
 
 
 class NIoTBot(Client):
@@ -75,11 +84,14 @@ class NIoTBot(Client):
             discord_author_display_name=message.author.display_name,
         )
         for attachment in message.attachments:
+            filepath = get_random_filepath()
+            await attachment.save(filepath)
             submission.attachments.append(
                 Attachment(
                     discord_attachment_url=attachment.url,
                     discord_attachment_id=attachment.id,
                     content_type=attachment.content_type,
+                    filepath=filepath,
                 )
             )
 
@@ -120,7 +132,7 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         )
         if submission:
             thread = self.get_channel(submission.discord_thread_id)
-            await thread.send("Original post deleted! This will not be posted.")
+            await thread.send("Original submission deleted! This will not be posted.")
             self.session.delete(submission)
             self.log.info(f"deleted message {message.message_id}")
 

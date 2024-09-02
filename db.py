@@ -60,6 +60,7 @@ class Attachment(Base):
     parent_id: Mapped[int] = mapped_column(ForeignKey("submission.id"))
     discord_attachment_id: Mapped[int] = Column(BigInteger, nullable=False)
     discord_attachment_url: Mapped[str]
+    filepath: Mapped[str]
     content_type: Mapped[str]
 
 
