@@ -24,7 +24,7 @@ Session: orm.Session = sessionmaker(bind=engine)
 class Submission(Base):
     """Represents a submission from a discord message, and the associated thread
 
-    A submission has many attachments"""
+    A submission has many attachments and reviews"""
 
     __tablename__ = "submission"
 
@@ -59,6 +59,7 @@ class Attachment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     parent_id: Mapped[int] = mapped_column(ForeignKey("submission.id"))
     discord_attachment_id: Mapped[int] = Column(BigInteger, nullable=False)
+    discord_attachment_url: Mapped[str]
     content_type: Mapped[str]
 
 

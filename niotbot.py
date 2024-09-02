@@ -79,6 +79,7 @@ class NIoTBot(Client):
         for attachment in message.attachments:
             submission.attachments.append(
                 Attachment(
+                    discord_attachment_url=attachment.url,
                     discord_attachment_id=attachment.id,
                     content_type=attachment.content_type,
                 )
@@ -92,6 +93,7 @@ Thanks for your submission, {message.author.mention}.
 
 You have submitted {number_of_attachments} attachment{'' if number_of_attachments == 1 else 's'}.
 
+{f'Instagram does not support multi-image posts, so this will create {number_of_attachments} posts.\n' if number_of_attachments != 1 else ''}
 {'It' if number_of_attachments == 1 else 'They'} will be posted with the caption:
 ```
 {submission.description}
