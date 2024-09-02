@@ -237,6 +237,14 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
         self.log.info("shutting down...")
         self.session.close()
 
+    async def publish_now(self, ctx: commands.Context):
+        """Command, defined with @commands.command in main.py"""
+        if self.APPROVERS_ROLE not in (r.name for r in ctx.message.author.roles):
+            await ctx.send("You do not have the correct role.")
+            return
+        await ctx.send("On it! \N{SALUTING FACE}")
+        await self.post_approved_submissions()
+
     @tasks.loop(
         time=[datetime.time(hour=12, minute=0, tzinfo=ZoneInfo("America/New_York"))]
     )
@@ -267,12 +275,17 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
             .having(func.count(ReviewFalse.id) == 0)
         )
 
+        submissions = query.all()
+        if not submissions:
+            self.log.info("post_approved_submissions has nothing to post")
+            return
+
         # log in to Instagram
         publisher = InstagramPublisher()
         await publisher.login()
 
         # try to post all
-        for submission in query.all():
+        for submission in submissions:
             thread = self.get_channel(submission.discord_thread_id)
             await thread.send("Attempting to publish...")
             try:

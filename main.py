@@ -27,8 +27,8 @@ def main():
     client = NIoTBot(intents=intents, command_prefix="/")
 
     @client.command()
-    async def ping(ctx):
-        await ctx.send("pong")
+    async def publish_now(ctx):
+        await client.publish_now(ctx)
 
     client.run(TOKEN)
 
