@@ -1,11 +1,13 @@
 # Norse IoT Discord Bot
 
+import db
 import os
+import asyncio
 import discord
 import logging
 from dotenv import load_dotenv
 from niotbot import NIoTBot
-import db
+from modules.publish_manager import PublishManager
 
 
 def set_up_logging() -> logging.Logger:
@@ -25,11 +27,6 @@ def main():
     intents.message_content = True
     intents.members = True
     client = NIoTBot(intents=intents, command_prefix="/")
-
-    @client.command()
-    async def publish_now(ctx):
-        await client.publish_now(ctx)
-
     client.run(TOKEN)
 
 
