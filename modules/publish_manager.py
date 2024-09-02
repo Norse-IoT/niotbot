@@ -6,6 +6,7 @@ from discord.ext import commands, tasks
 from publisher import InstagramPublisher
 from niotbot import NIoTBot
 from db import Submission, Review, Session
+from zoneinfo import ZoneInfo
 
 
 class PublishManager(commands.Cog):
@@ -18,24 +19,26 @@ class PublishManager(commands.Cog):
         self.log.info("PublishManager __init__")
         self.session = Session()
 
-    async def on_ready(self):
-        self.log.info("PublishManager on_ready")
+    def cog_unload(self):
+        self.log.info("PublishManager shutting down")
+        self.every_day.cancel()
+        self.session.close()
 
     @commands.command()
     async def publish_now(self, ctx: commands.Context):
         """command to publish all approved posts right now; callers must be enrolled approvers"""
-        self.log.info("got here! publishing now")
+        self.log.info("publishing on command")
         if NIoTBot.APPROVERS_ROLE not in (r.name for r in ctx.message.author.roles):
             await ctx.reply("You do not have the correct role.")
             return
         await ctx.reply("On it! \N{SALUTING FACE}")
         await self.post_approved_submissions()
 
-    EST = datetime.timezone(datetime.timedelta(hours=-5))
-    NOON = datetime.time(13, 29, tzinfo=EST)
+    NOON = datetime.time(15, 40, tzinfo=ZoneInfo("US/Eastern"))
 
     @tasks.loop(time=NOON)
     async def every_day(self):
+        self.log.debug("automatic trigger!")
         await self.post_approved_submissions()
 
     async def post_approved_submissions(self):
@@ -93,9 +96,6 @@ class PublishManager(commands.Cog):
     async def before_post_approved_submissions(self):
         self.log.info("waiting...")
         await self.bot.wait_until_ready()
-
-    def cog_unload(self):
-        self.every_day.cancel()
 
 
 async def setup(bot: commands.Bot):

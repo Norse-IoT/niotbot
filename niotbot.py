@@ -23,7 +23,7 @@ class NIoTBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         Base.metadata.create_all(engine)
         self.initial_extensions = [
-            "modules.message_responder",
+            "modules.submission_manager",
             "modules.publish_manager",
         ]
 

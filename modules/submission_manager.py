@@ -22,18 +22,17 @@ def get_random_filepath(filename: str) -> str:
     return os.path.join(randomdir, filename)
 
 
-class MessageResponder(commands.Cog):
+class SubmissionManager(commands.Cog):
     """Responds to messages and reactions; loads submissions and approvals into the database"""
 
     def __init__(self, bot):
         self.bot = bot
-        self.log = logging.getLogger("niot.message_responder")
-        self.log.debug("MessageResponder __init__")
+        self.log = logging.getLogger("niot.submission_manager")
+        self.log.debug("SubmissionManager __init__")
         self.session = Session()
 
-    @commands.Cog.listener()
-    async def close(self):
-        self.log.info("MessageResponder shutting down")
+    async def cog_unload(self):
+        self.log.info("SubmissionManager shutting down")
         self.session.close()
 
     async def should_reject(self, message: Message) -> bool:
@@ -46,23 +45,15 @@ class MessageResponder(commands.Cog):
         if message.author == self.bot.user:
             return True
 
-        # add more guard statements here (if needed)
-
-        return False
-
-    async def _process_commands(self, message):
         ctx = await self.bot.get_context(message)
         if ctx.command is not None:
-            await self.invoke(ctx)
             return True
+
         return False
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
         if await self.should_reject(message):
-            return
-
-        if await self._process_commands(message):
             return
 
         current_time = datetime.datetime.now().isoformat()
@@ -88,20 +79,8 @@ class MessageResponder(commands.Cog):
             discord_author_id=message.author.id,
             discord_author_display_name=message.author.display_name,
         )
-        for attachment in message.attachments:
-            filepath = get_random_filepath(attachment.filename)
-            await attachment.save(filepath)
-            submission.attachments.append(
-                Attachment(
-                    discord_attachment_url=attachment.url,
-                    discord_attachment_id=attachment.id,
-                    content_type=attachment.content_type,
-                    filepath=filepath,
-                )
-            )
 
-        number_of_attachments = len(submission.attachments)
-
+        number_of_attachments = len(message.attachments)
         await thread.send(
             f"""
 Thanks for your submission, {message.author.mention}. 
@@ -114,16 +93,27 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
 ```
                           """.strip()
         )
-
         role: Role = utils.get(message.guild.roles, name=NIoTBot.APPROVERS_ROLE)
         assert role is not None
         approval_message = await thread.send(
             f"A {role.mention} will need to approve your submission before it is posted by reacting to this message."
         )
-
         submission.discord_approval_message_id = approval_message.id
-
         self.session.add(submission)
+        self.session.commit()
+
+        for attachment in message.attachments:
+            filepath = get_random_filepath(attachment.filename)
+            await attachment.save(filepath)
+            submission.attachments.append(
+                Attachment(
+                    discord_attachment_url=attachment.url,
+                    discord_attachment_id=attachment.id,
+                    content_type=attachment.content_type,
+                    filepath=filepath,
+                )
+            )
+
         self.session.commit()
 
         await approval_message.add_reaction(NIoTBot.APPROVAL_EMOJI)  # approve
@@ -226,4 +216,4 @@ You have submitted {number_of_attachments} attachment{'' if number_of_attachment
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(MessageResponder(bot))
+    await bot.add_cog(SubmissionManager(bot))
