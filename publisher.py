@@ -39,10 +39,20 @@ class InstagramPublisher:
     async def upload(self, submission: Submission) -> str:
         if submission.posted:  # don't double-post
             return
-        filepaths = self.convert_pngs_to_jpgs(submission.attachments)
-        if len(filepaths) == 1:
-            media = self.insta_client.photo_upload(filepaths[0], submission.description)
-        elif len(filepaths) > 1:
+
+        num_attachments = len(submission.attachments)
+        if num_attachments == 1:
+            attachment = submission.attachments[0]
+            if "video" in attachment.content_type:
+                media = self.insta_client.video_upload(
+                    attachment.filepath, submission.description
+                )
+            else:
+                media = self.insta_client.photo_upload(
+                    attachment.filepath, submission.description
+                )
+        elif num_attachments > 1:
+            filepaths = self.convert_pngs_to_jpgs(submission.attachments)
             media = self.insta_client.album_upload(filepaths, submission.description)
         self.log.info(f"uploaded submission #{submission.id} and got {media=}")
 
