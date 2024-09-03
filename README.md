@@ -25,6 +25,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Run with docker
+
+```
+touch niotbot.log niotbot.db
+systemctl enable docker
+docker compose up -d
+```
+
 ### run application
 
 ```bash
