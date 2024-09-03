@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   niotbot:
+    restart: always
     build: .
     volumes:
       - type: bind
