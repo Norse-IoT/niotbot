@@ -10,7 +10,7 @@ from niotbot import NIoTBot
 from modules.publish_manager import PublishManager
 
 
-def set_up_logging() -> logging.Logger:
+def set_up_logging():
     logging.basicConfig(
         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S %Z",
