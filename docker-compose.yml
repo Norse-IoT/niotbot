@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  niotbot:
+    build: .
+    volumes:
+      - type: bind
+        source: ./niotbot.db
+        target: /app/niotbot.db
+      - type: bind
+        source: ./niotbot.log
+        target: /app/niotbot.log
+
