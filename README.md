@@ -38,3 +38,16 @@ docker compose up -d
 ```bash
 python3 main.py
 ```
+
+### `.env` file
+
+This program requires credentials stored as environment variables to function.
+
+I recommend a `.env` file in the project folder with the following values:
+
+```env
+DISCORD_TOKEN=
+INSTAGRAM_USERNAME=
+INSTAGRAM_PASSWORD=
+```
+
