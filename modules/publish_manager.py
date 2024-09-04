@@ -1,5 +1,6 @@
 import logging
 import datetime
+from discord import app_commands, Interaction
 from sqlalchemy.orm import aliased
 from sqlalchemy import and_, func
 from discord.ext import commands, tasks
@@ -24,14 +25,14 @@ class PublishManager(commands.Cog):
         self.every_day.cancel()
         self.session.close()
 
-    @commands.command()
-    async def publish_now(self, ctx: commands.Context):
+    @app_commands.command(name="publish_now", description="Publish all approved posts")
+    async def publish_now(self, ctx: Interaction):
         """command to publish all approved posts right now; callers must be enrolled approvers"""
         self.log.info("publishing on command")
-        if NIoTBot.APPROVERS_ROLE not in (r.name for r in ctx.message.author.roles):
-            await ctx.reply("You do not have the correct role.")
+        if NIoTBot.APPROVERS_ROLE not in (r.name for r in ctx.user.roles):
+            await ctx.response.send_message("You do not have the correct role.")
             return
-        await ctx.reply("On it! \N{SALUTING FACE}")
+        await ctx.response.send_message("On it! \N{SALUTING FACE}")
         await self.post_approved_submissions()
 
     NOON = datetime.time(12, 0, tzinfo=ZoneInfo("US/Eastern"))
@@ -100,3 +101,4 @@ class PublishManager(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(PublishManager(bot))
+    await bot.tree.sync()
