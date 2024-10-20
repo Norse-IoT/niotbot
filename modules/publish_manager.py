@@ -1,5 +1,6 @@
 import logging
 import datetime
+from requests.exceptions import HTTPError
 from sqlalchemy.orm import aliased
 from sqlalchemy import and_, func
 from discord.ext import commands, tasks
@@ -36,10 +37,13 @@ class PublishManager(commands.Cog):
 
     TIME = datetime.time(8, 0, tzinfo=ZoneInfo("US/Eastern"))
 
-    @tasks.loop(time=TIME)
-    async def every_day(self):
-        self.log.debug("automatic trigger!")
-        await self.post_approved_submissions()
+	@tasks.loop(time=TIME)
+	async def every_day(self):
+		try:
+			self.log.debug("automatic trigger!")
+			await self.post_approved_submissions()
+		except HTTPError as err:
+			self.log.error(err)
 
     async def post_approved_submissions(self):
         self.log.info("post_approved_submissions is running...")
