@@ -34,9 +34,9 @@ class PublishManager(commands.Cog):
         await ctx.reply("On it! \N{SALUTING FACE}")
         await self.post_approved_submissions()
 
-    NOON = datetime.time(12, 0, tzinfo=ZoneInfo("US/Eastern"))
+    TIME = datetime.time(8, 0, tzinfo=ZoneInfo("US/Eastern"))
 
-    @tasks.loop(time=NOON)
+    @tasks.loop(time=TIME)
     async def every_day(self):
         self.log.debug("automatic trigger!")
         await self.post_approved_submissions()
